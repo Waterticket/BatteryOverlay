@@ -16,6 +16,10 @@ namespace BatteryOverlay
         bool On;
         Point Pos;
         private Timer MonitorTimer = new Timer();
+        private int beforeBattery = 0;
+        private bool chargeSuccess = false;
+        private bool chargeError = false;
+        private bool isCharging = false;
 
         public Form1()
         {
@@ -27,7 +31,7 @@ namespace BatteryOverlay
 
             this.BatteryChange();
 
-            this.MonitorTimer.Interval = 10000; // 10초에 한번씩 상태를 체크
+            this.MonitorTimer.Interval = 1000; // 10초에 한번씩 상태를 체크
             this.MonitorTimer.Tick += new EventHandler(MonitorTimer_Tick);
             this.MonitorTimer.Start();
         }
@@ -37,8 +41,76 @@ namespace BatteryOverlay
             this.BatteryChange();
         }
 
+        public void checkCharge()
+        {
+            ObjectQuery query = new ObjectQuery("Select * FROM Win32_Battery");
+            PowerStatus pwr = SystemInformation.PowerStatus;
+
+            switch (pwr.PowerLineStatus)
+            {
+                case (PowerLineStatus.Offline):
+                    this.beforeBattery = 0;
+                    this.chargeSuccess = false;
+                    this.chargeError = false;
+                    this.isCharging = false;
+                    break;
+
+                case (PowerLineStatus.Online):
+                    this.isCharging = true;
+                    if (this.chargeSuccess) break;
+                    if (this.beforeBattery <= 0)
+                    {
+                        this.beforeBattery = 0;
+                        foreach (ManagementObject o in new ManagementObjectSearcher(query).Get())
+                        {
+                            this.beforeBattery += Convert.ToInt32(o.Properties["EstimatedChargeRemaining"].Value);
+                        }
+                    }
+                    else
+                    {
+                        int curr_batt = 0;
+                        foreach (ManagementObject o in new ManagementObjectSearcher(query).Get())
+                        {
+                            curr_batt += Convert.ToInt32(o.Properties["EstimatedChargeRemaining"].Value);
+                        }
+
+                        if (curr_batt < this.beforeBattery)
+                        {
+                            // Charging Error!
+                            this.chargeError = true;
+                        }
+                        else if (curr_batt > this.beforeBattery)
+                        {
+                            this.chargeSuccess = true;
+                        }
+                    }
+                    break;
+            }
+        }
+
         public void BatteryChange()
         {
+            this.checkCharge();
+            if (this.isCharging)
+            {
+                if (this.chargeError)
+                {
+                    this.BackColor = Color.FromArgb(245, 222, 179);
+                }
+                else if(this.chargeSuccess)
+                {
+                    this.BackColor = Color.FromArgb(0, 250, 154);
+                }
+                else
+                {
+                    this.BackColor = Color.FromArgb(175, 238, 238);
+                }
+            }
+            else
+            {
+                this.BackColor = Color.FromArgb(240, 255, 255);
+            }
+
             String fore_text = "";
             ObjectQuery query = new ObjectQuery("Select * FROM Win32_Battery");
 
