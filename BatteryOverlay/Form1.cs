@@ -25,9 +25,9 @@ namespace BatteryOverlay
         {
             InitializeComponent();
 
-            MouseDown += (o, e) => { if (e.Button == MouseButtons.Left) { On = true; Pos = e.Location; } };
+            MouseDown += (o, e) => { if (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right) { On = true; Pos = e.Location; } };
             MouseMove += (o, e) => { if (On) Location = new Point(Location.X + (e.X - Pos.X), Location.Y + (e.Y - Pos.Y)); };
-            MouseUp += (o, e) => { if (e.Button == MouseButtons.Left) { On = false; Pos = e.Location; } };
+            MouseUp += (o, e) => { if (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right) { On = false; Pos = e.Location; } };
 
             this.BatteryChange();
 
